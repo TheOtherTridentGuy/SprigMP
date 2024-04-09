@@ -32,14 +32,13 @@ storage.mount(vfs, "/sd")
 audio = audiobusio.I2SOut(bit_clock=board.GP10, word_select=board.GP11, data=board.GP9)
 display_bus = FourWire(spi, command=tft_dc, chip_select=tft_cs, reset=board.GP26)
 display = ST7735R(display_bus, width=160, height=128, rotation=270, bgr=True)
-
 color_bitmap = None
 splash = None
 bg_sprite = None
 inner_bitmap = None
 text_group = None
 
-def display_song(song_list, index):
+def display_song(song_list, index, status):
     global color_bitmap, display, splash, bg_sprite, inner_bitmap, text_group
     splash = displayio.Group()
     display.root_group = splash
@@ -62,6 +61,11 @@ def display_song(song_list, index):
 
     text_group = displayio.Group(scale=1, x=10, y=55)
     text_area = label.Label(terminalio.FONT, text="press d to play/pause\na to go back", color=0xffffff)
+    text_group.append(text_area)
+    splash.append(text_group)
+
+    text_group = displayio.Group(scale=1, x=10, y=100)
+    text_area = label.Label(terminalio.FONT, text=status, color=0xffffff)
     text_group.append(text_area)
     splash.append(text_group)
 
@@ -99,11 +103,13 @@ def display_menu(items, index):
     splash = None
 
 
-# You have to get audio yourself, this is only an example:
 songs = {
     "The Spectre\nby Alan Walker": "/sd/spectre.wav",
     "Not You - Instrumental\nby Alan Walker": "/sd/notyou.wav",
-    "Bad Apple!!\nby Somebody": "/sd/badapple.wav"
+    "Bad Apple!!\nby Masayoshi Minoshima": "/sd/badapple.wav",
+    "Ticking Away\nby Grabbitz, VALORANT, and bbno$": "/sd/tickingaway.wav",
+    "Spectrum\nby Zedd ft. Matthew Koma": "/sd/spectrum.wav",
+    "Never Gonna Give You Up\nby Rick Astley": "/sd/rickroll.wav"
 }
 titles = list(songs.keys())
 
@@ -138,7 +144,7 @@ while True:
         time.sleep(0.05)
 
     elif not dpin.value:
-        display_song(titles, current_index)
+        display_song(titles, current_index, "PAUSED")
         while apin.value:
             if not dpin.value:
                 print("pressed")
@@ -152,12 +158,15 @@ while True:
                 while not dpin.value:
                     pass
                 time.sleep(0.05)
+                display_song(titles, current_index, "PLAYING")
                 while audio.playing or audio.paused:
                     if not dpin.value:
                         if audio.paused:
                             audio.resume()
+                            display_song(titles, current_index, "PLAYING")
                         else:
-                            audio.pause()
+                            audio.pause() 
+                            display_song(titles, current_index, "PAUSED")
                         time.sleep(0.05)
                         while not dpin.value:
                             pass
@@ -167,4 +176,3 @@ while True:
                         break
                 break	
         display_menu(titles, current_index)
-
